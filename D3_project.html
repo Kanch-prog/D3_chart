@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>GDP bar chart</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.4.1/dist/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <style>
+        #chart {
+            width: 100%; /* Make the SVG element take up the full width of its container */
+            height: 500px; /* Set a fixed height for the SVG element */
+        }
+        .bar {
+            fill: steelblue; 
+        }
+    </style>
+</head>
+<body>
+    <h1 id="title">United States GDP</h1>
+     <!--this is where the chart will be drawn-->
+    <svg id="chart"></svg>
+    <!--this will be used to display tooltips wher hovering over chart elements-->
+    <div id="tooltip"></div>
+
+    <!--including the D3 library-->
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <script>
+        // Select the SVG element with the id "chart"
+        const svg = d3.select("#chart");
+
+        // Define margins for the chart
+        const margin = { top: 20, right: 30, bottom: 50, left: 60 };
+
+        // Calculate the width and height of the chart area, subtracting the margins
+        const width = 800 - margin.left - margin.right;
+        const height = 500 - margin.top - margin.bottom;
+
+        // Define x and y scales using D3's scale functions
+        const x = d3.scaleBand().range([0, width]).padding(0.1); // Band scale for categorical data
+        const y = d3.scaleLinear().range([height, 0]); // Linear scale for numerical data
+
+        // Define x and y axis functions using D3's axis generators
+        const xAxis = d3.axisBottom(x); // Bottom axis for x scale
+        const yAxis = d3.axisLeft(y); // Left axis for y scale
+
+        // Define the URL from which to load the data
+        const url = 'https://raw.githubusercontent.com/freeCodeCamp/ProjectReferenceData/master/GDP-data.json';
+
+        // Load JSON data asynchronously using D3's json function
+        d3.json(url).then(({ data }) => {
+            // Set the domain (possible input values) for x and y scales based on the loaded data
+            x.domain(data.map(d => d[0])); // Map years to x scale domain
+            y.domain([0, d3.max(data, d => d[1])]); // Map GDP values to y scale domain
+
+            // Append a group element for the x-axis to the SVG
+            svg.append("g")
+                .attr("id", "x-axis")
+                .attr("transform", `translate(${margin.left}, ${height + margin.top})`) // Move the axis to the bottom of the chart area
+                .call(xAxis); // Call the xAxis function to generate the axis
+
+            // Append a group element for the y-axis to the SVG
+            svg.append("g")
+                .attr("id", "y-axis")
+                .attr("transform", `translate(${margin.left}, ${margin.top})`) // Move the axis to the left side of the chart area
+                .call(yAxis); // Call the yAxis function to generate the axis
+
+            // Append rectangles (bars) for each data point
+            svg.selectAll(".bar")
+                .data(data)
+                .enter().append("rect")
+                .attr("class", "bar")
+                .attr("x", d => x(d[0]) + margin.left) // Calculate x position of each bar
+                .attr("y", d => y(d[1]) + margin.top) // Calculate y position of each bar
+                .attr("width", x.bandwidth()) // Set the width of each bar based on the bandwidth of the x scale
+                .attr("height", d => height - y(d[1])) // Calculate the height of each bar
+                .attr("data-date", d => d[0]) // Add data-date attribute to each bar for tooltip
+                .attr("data-gdp", d => d[1]) // Add data-gdp attribute to each bar for tooltip
+                .on("mouseover", (event, d) => { // Add mouseover event listener to show tooltip
+                    const tooltip = d3.select("#tooltip")
+                        .style("opacity", 0.9)
+                        .attr("data-date", d[0])
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 30) + "px")
+                        .html(`${d[0]}<br>$${d[1]} Billion`);
+                })
+                .on("mouseout", () => { // Add mouseout event listener to hide tooltip
+                    d3.select("#tooltip").style("opacity", 0);
+                });
+        });
+
+    </script>
+</body>
+</html>
